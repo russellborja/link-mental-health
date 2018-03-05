@@ -2,7 +2,8 @@ from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://localhost/russellborja'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://localhost/russellborja'
+heroku = Heroku(app)
 db = SQLAlchemy(app)
 
 class InvalidUsage(Exception):
