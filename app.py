@@ -1,15 +1,13 @@
 from flask import Flask, render_template, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_heroku import Heroku
+from db.models import db, User, UserSchema
 
 app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://localhost/russellborja'
-heroku = Heroku(app)
-db = SQLAlchemy(app)
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://localhost/russellborja"
+db.init_app(app)
+# heroku = Heroku(app)
 
-class InvalidUsage(Exception):
-    status_code = 400
-
+class Error(Exception):
     def __init__(self, message, status_code=None, payload=None):
         Exception.__init__(self)
         self.message = message
@@ -19,61 +17,53 @@ class InvalidUsage(Exception):
 
     def to_dict(self):
         rv = dict(self.payload or ())
-        rv['message'] = self.message
+        rv["message"] = "ERROR: %s" % self.message
         return rv
 
-# Create our database model
-class User(db.Model):
-    __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
-    phone_number = db.Column(db.String(20))
-    email = db.Column(db.String(120), unique=True)
-    notes = db.Column(db.String(120))
-
-    def __init__(self, email, phone_number, notes):
-        self.email = email
-        self.phone_number = phone_number
-        self.notes = notes
-
-    def __repr__(self):
-        return '<E-mail %r>' % self.email
-
-@app.errorhandler(InvalidUsage)
-def handle_invalid_usage(error):
+@app.errorhandler(Error)
+def handle_error(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
 # Set "homepage" to index.html
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-# Save e-mail to database and send to success page
-@app.route('/api/v1/users', methods=['POST'])
+@app.route("/api/v1/users", methods=["POST"])
 def add_user():
-    email = None
-    phone_number = None
-    notes = None
+    body = request.get_json()
 
-    if request.method == 'POST':
-        body = request.get_json()
-        if 'email' not in body:
-            raise InvalidUsage('Payload must contain e-mail attribute', 400)
-        email = body['email']
-        if 'phone_number' in body:
-            phone_number = body['phone_number']
-        if 'notes' in body:
-            notes = body['notes']
+    email = body.get("email")
+    username = body.get("username")
+    phone_number = body.get("phone_number")
+    notes = body.get("notes")
 
-        if not db.session.query(User).filter(User.email == email).count():
-            reg = User(email, phone_number, notes)
-            db.session.add(reg)
-            db.session.commit()
-            return "Succesfully added user."
-        #     return render_template('success.html')
-    return "Error: Did not save to db."
+    if not username or not email:
+        raise Error("Payload must contain username and e-mail attribute", 400)
 
-if __name__ == '__main__':
+    if not User.query.filter_by(username=username).count():
+        reg = User(username, email, phone_number, notes)
+        db.session.add(reg)
+        db.session.commit()
+        return jsonify({"message": "Succesfully added user."}), 200
+    else:
+        raise Error("User already in database", 400)
+    raise Error("Could not save user to database", 500)
+
+@app.route("/api/v1/users/<username>", methods=["GET"])
+def get_user(username):
+    try:
+        user = User.query.filter_by(username=username).one()
+        user_result = UserSchema().dump(user)
+        print(bool(user_result.data))
+        if user_result.errors:
+            raise Error("Encountered errors retrieving user", 500, user_result.errors)
+        return jsonify(user_result.data), 200
+    except:
+        raise Error("Could not find user", 404)
+
+if __name__ == "__main__":
     app.debug = True
     app.run()
