@@ -4,9 +4,9 @@ from db.models import db, User, UserSchema, Therapist, TherapistSchema
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://localhost/russellborja"
+# app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://localhost/russellborja"
 db.init_app(app)
-# heroku = Heroku(app)
+heroku = Heroku(app)
 
 class Error(Exception):
     def __init__(self, message, status_code=None, payload=None):
