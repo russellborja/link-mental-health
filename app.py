@@ -30,7 +30,7 @@ def handle_error(error):
 
 @app.before_first_request
 def create_database():
-     db.create_all()
+    db.create_all()
 
 # Set "homepage" to index.html
 @app.route("/")
