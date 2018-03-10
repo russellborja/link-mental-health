@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 from flask_heroku import Heroku
 from db.models import db, User, UserSchema, Therapist, TherapistSchema
+import os
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 # app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://localhost/russellborja"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 db.init_app(app)
 heroku = Heroku(app)
 
