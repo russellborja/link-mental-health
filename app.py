@@ -27,11 +27,6 @@ def handle_error(error):
     response.status_code = error.status_code
     return response
 
-
-@app.before_first_request
-def create_database():
-    db.create_all()
-
 # Set "homepage" to index.html
 @app.route("/")
 def index():
