@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 from flask_heroku import Heroku
-from db.models import db, User, UserSchema
+from db.models import db, User, UserSchema, Therapist, TherapistSchema
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://localhost/russellborja"
 db.init_app(app)
 # heroku = Heroku(app)
@@ -26,43 +27,83 @@ def handle_error(error):
     response.status_code = error.status_code
     return response
 
+
+@app.before_first_request
+def create_database():
+     db.create_all()
+
 # Set "homepage" to index.html
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/api/v1/users", methods=["POST"])
+@app.route("/api/v1/users/", methods=["POST"])
 def add_user():
     body = request.get_json()
 
     email = body.get("email")
     username = body.get("username")
-    phone_number = body.get("phone_number")
-    notes = body.get("notes")
 
     if not username or not email:
-        raise Error("Payload must contain username and e-mail attribute", 400)
+        raise Error("Username and e-mail must be provided", 400)
 
     if not User.query.filter_by(username=username).count():
-        reg = User(username, email, phone_number, notes)
-        db.session.add(reg)
-        db.session.commit()
-        return jsonify({"message": "Succesfully added user."}), 200
+        user = User(body)
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception as e:
+            raise Error(e, 400)
+        return jsonify({"message": "Succesfully added user."}), 201
     else:
         raise Error("User already in database", 400)
-    raise Error("Could not save user to database", 500)
 
-@app.route("/api/v1/users/<username>", methods=["GET"])
-def get_user(username):
+@app.route("/api/v1/users/<int:id>/", methods=["GET"])
+def get_user(id):
     try:
-        user = User.query.filter_by(username=username).one()
-        user_result = UserSchema().dump(user)
-        print(bool(user_result.data))
-        if user_result.errors:
-            raise Error("Encountered errors retrieving user", 500, user_result.errors)
-        return jsonify(user_result.data), 200
-    except:
-        raise Error("Could not find user", 404)
+        user = User.query.filter_by(user_id=id).one()
+    except Exception as e:
+        raise Error("Could not find user with given ID", 404)
+    user_result = UserSchema().dump(user)
+
+    if user_result.errors:
+        raise Error("Encountered errors retrieving user", 500, user_result.errors)
+    return jsonify(user_result.data), 200
+
+@app.route("/api/v1/therapists/", methods=["POST"])
+def add_therapist():
+    body = request.get_json()
+
+    name = body.get("name")
+    location = body.get("location")
+    specialty = body.get("specialty")
+
+    if not name or not specialty or not location:
+        raise Error("Name, location, and specialty must be provided", 400)
+
+    if not Therapist.query.filter_by(name=name).count():
+        therapist = Therapist(body)
+        try:
+            db.session.add(therapist)
+            db.session.commit()
+        except Exception as e:
+            raise Error(e, 400)
+        return jsonify({"message": "Successfully added therapist."}), 201
+    else:
+        raise Error("Therapist already in database", 400) 
+
+@app.route("/api/v1/therapists/<int:id>")
+def get_therapist(id):
+    try:
+        therapist = Therapist.query.filter_by(therapist_id=id).one()
+    except Exception as e:
+        raise Error("Could not find therapist with given ID", 404)
+    therapist_result = TherapistSchema().dump(therapist)
+
+    if therapist_result.errors:
+        raise Error("Encountered errors retrieving user", 500, therapist_result.errors)
+    return jsonify(therapist_result.data), 200
+    
 
 if __name__ == "__main__":
     app.debug = True
