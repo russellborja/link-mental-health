@@ -12,6 +12,7 @@ heroku = Heroku(app)
 
 VERSION = "v1"
 
+# Error responses
 def bad_request(message):
     response = jsonify({'error': message})
     response.status_code = 400
@@ -27,6 +28,9 @@ def not_found(message):
 def index():
     return render_template("index.html")
 
+################################################################################
+## Users CRUD Endpoints
+################################################################################
 @app.route("/api/{version}/users/".format(version=VERSION), methods=["POST"])
 def add_user():
     body = request.get_json()
@@ -87,6 +91,21 @@ def get_user(id):
     except:
         return not_found("Could not find user with given ID")
 
+@app.route("/api/{version}/users/<int:id>".format(version=VERSION), methods=["DELETE"])
+def delete_user(id):
+    user = User.query.get(id)
+    if user:
+        username = user.username
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": "Successfully deleted {user}".format(user=username)}), 200
+    else:
+        return bad_request("User does not exist")
+
+
+################################################################################
+## Therapists CRUD Endpoints
+################################################################################
 @app.route("/api/{version}/therapists/".format(version=VERSION), methods=["POST"])
 def add_therapist():
     body = request.get_json()
@@ -150,7 +169,17 @@ def get_therapist(id):
         return jsonify(therapist_result.data)
     except:
         return not_found("Could not find therapist with given ID")
-    
+
+@app.route("/api/{version}/therapists/<int:id>".format(version=VERSION), methods=["DELETE"])
+def delete_therapist(id):
+    therapist = Therapist.query.get(id)
+    if therapist:
+        name = therapist.name
+        db.session.delete(therapist)
+        db.session.commit()
+        return jsonify({"message": "Successfully deleted {therapist}".format(therapist=name)}), 200
+    else:
+        return bad_request("Therapist does not exist")
 
 if __name__ == "__main__":
     app.debug = True
