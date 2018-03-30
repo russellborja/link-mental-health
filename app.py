@@ -55,6 +55,28 @@ def add_user():
     else:
         raise Error("User already in database", 400)
 
+@app.route("/api/v1/users/<int:id>", methods=["PUT"])
+def update_user(id):
+    body = request.get_json()
+
+    email = body.get("email")
+    username = body.get("username")
+
+    if not username or not email:
+        raise Error("Username and e-mail must be provided", 400)
+    try:
+        user = User.query.get(id)
+        user.email = email
+        user.username = username
+    except Exception as e:
+        raise Error("Could not find therapist with given ID", 404)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        raise Error(e, 400)
+    return jsonify(user), 201
+
 @app.route("/api/v1/users/<int:id>/", methods=["GET"])
 def get_user(id):
     try:
@@ -85,11 +107,35 @@ def add_therapist():
             db.session.commit()
         except Exception as e:
             raise Error(e, 400)
-        return jsonify({"message": "Successfully added therapist."}), 201
+        return jsonify(therapist), 201
     else:
-        raise Error("Therapist already in database", 400) 
+        raise Error("Therapist already in database", 400)
 
-@app.route("/api/v1/therapists/<int:id>")
+@app.route("/api/v1/therapists/<int:id>", methods=["PUT"])
+def update_therapist(id):
+    body = request.get_json()
+
+    name = body.get("name")
+    location = body.get("location")
+    specialty = body.get("specialty")
+
+    if not name or not specialty or not location:
+        raise Error("Name, location, and specialty must be provided", 400)
+    try:
+        therapist = Therapist.query.get(id)
+        therapist.name = name
+        therapist.location = location
+        therapist.specialty = specialty
+    except Exception as e:
+        raise Error("Could not find therapist with given ID", 404)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        raise Error(e, 400)
+    return jsonify(therapist), 201
+
+@app.route("/api/v1/therapists/<int:id>", methods=["GET"])
 def get_therapist(id):
     try:
         therapist = Therapist.query.filter_by(therapist_id=id).one()
