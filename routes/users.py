@@ -36,7 +36,7 @@ def update_user(id,db):
         if user.username != payload["username"] and User.query.filter_by(username=payload["username"]).count():
             return bad_request("Username already exists, select another username")
 
-        for key, val in payload.iteritems():
+        for key, val in payload.items():
             setattr(user, key, val)
 
         user_updated = UserSchema().dump(user)
