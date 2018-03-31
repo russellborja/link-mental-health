@@ -32,18 +32,18 @@ def update_therapist(id,db):
     if not payload["name"] or not payload["specialty"] or not payload["location"]:
         return bad_request("Name, location, and specialty must be provided")
 
-    try:
-        therapist = Therapist.query.get(id)
-        if therapist.name != payload["name"] and Therapist.query.filter_by(name=payload["name"]).count():
-            return bad_request("Therapist already exists, select another name")
+    therapist = Therapist.query.get(id)
+    print(therapist)
+    print(payload)
+    if therapist.name != payload["name"] and Therapist.query.filter_by(name=payload["name"]).count():
+        return bad_request("Therapist already exists, select another name")
 
-        for key, val in payload.iteritems():
-            setattr(therapist, key, val)
-        therapist_updated = TherapistSchema().dump(therapist)
-        db.session.commit()
-        return jsonify(therapist_updated.data), 201
-    except:
-        return not_found("Could not find therapist with given ID")
+    for key, val in payload.iteritems():
+        setattr(therapist, key, val)
+    therapist_updated = TherapistSchema().dump(therapist)
+    print(therapist_updated.data)
+    db.session.commit()
+    return jsonify(therapist_updated.data), 201
 
 def get_therapists(db):
     response = {
